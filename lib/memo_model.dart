@@ -231,7 +231,7 @@ class MemoStorage {
       ),
       Memo(
         id: '2',
-        title: 'Belanja Bulanan',
+        title: 'Tanpa Judul', // Catatan tanpa judul agar AI otomatis membuatkan judul dari isi
         content:
             'Beli susu, telur, sayur segar, dan kebutuhan pokok di supermarket.',
         folder: 'Kuliah', // Sengaja diatur 'Kuliah' agar fitur AI Organize memindahkannya ke 'Pribadi'
@@ -253,10 +253,10 @@ class MemoStorage {
       ),
       Memo(
         id: '4',
-        title: 'Ide Aplikasi Flutter',
+        title: 'Tanpa Judul', // Catatan tanpa judul kedua untuk demonstrasi smart titling
         content:
             'Selesaikan coding arsitektur AI mobile memo, speech-to-text, dan database offline.',
-        folder: 'Pribadi',
+        folder: 'Pribadi', // Sengaja diatur 'Pribadi' agar fitur AI Organize memindahkannya ke 'Ide & Proyek'
         imagePath: sampleImagePath,
         hasVoice: true,
         colorIndex: 2, // Soft Pink

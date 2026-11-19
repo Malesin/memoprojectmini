@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'memo_model.dart';
 
-/// Model untuk saran pengorganisasian folder oleh AI
+/// Model untuk saran pengorganisasian folder & pembuatan judul pintar oleh AI
 class FolderSuggestion {
   final String memoId;
   final String title;
+  final String? suggestedTitle; // Judul baru otomatis jika catatan aslinya 'Tanpa Judul'
   final String currentFolder;
   final String suggestedFolder;
   final String reason;
@@ -14,6 +15,7 @@ class FolderSuggestion {
   FolderSuggestion({
     required this.memoId,
     required this.title,
+    this.suggestedTitle,
     required this.currentFolder,
     required this.suggestedFolder,
     required this.reason,
@@ -23,6 +25,7 @@ class FolderSuggestion {
     return FolderSuggestion(
       memoId: json['memoId'] as String? ?? '',
       title: json['title'] as String? ?? '',
+      suggestedTitle: json['suggestedTitle'] as String?,
       currentFolder: json['currentFolder'] as String? ?? 'Semua',
       suggestedFolder: json['suggestedFolder'] as String? ?? 'Umum',
       reason: json['reason'] as String? ?? 'Dianalisis dari isi catatan.',
@@ -183,7 +186,9 @@ class _SmartAIScreenState extends State<SmartAIScreen> {
             .join('\n');
 
         final prompt = '''
-Kamu adalah asisten pengatur catatan pintar. Tugasmu adalah menganalisis memo berikut dan menyarankan folder kategori yang paling cocok (misal: "Kuliah", "Pribadi", "Keuangan", "Pekerjaan", "Ide & Proyek"):
+Kamu adalah asisten pengatur catatan pintar. Tugasmu:
+1. Analisis memo berikut dan sarankan folder kategori yang paling cocok (misal: "Kuliah", "Pribadi", "Keuangan", "Ide & Proyek").
+2. Jika ada memo dengan judul "Tanpa Judul" atau kosong, buatkan judul baru yang cerdas dan padat (2-4 kata) berdasarkan isi catatan dan masukkan ke field "suggestedTitle". Jika judul sudah ada dan bukan "Tanpa Judul", biarkan "suggestedTitle": null.
 $memoListString
 
 Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
@@ -191,6 +196,7 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
   {
     "memoId": "id_memo",
     "title": "judul_memo",
+    "suggestedTitle": "Judul Baru Yang Dibuat (atau null)",
     "currentFolder": "folder_saat_ini",
     "suggestedFolder": "folder_baru_yang_disarankan",
     "reason": "alasan singkat kenapa cocok di folder tersebut"
@@ -209,7 +215,9 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
             _folderSuggestions = decoded
                 .map((item) =>
                     FolderSuggestion.fromJson(item as Map<String, dynamic>))
-                .where((item) => item.currentFolder != item.suggestedFolder)
+                .where((item) =>
+                    item.currentFolder != item.suggestedFolder ||
+                    item.suggestedTitle != null)
                 .toList();
           });
         }
@@ -229,14 +237,14 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Semua memo sudah berada di folder yang sangat rapi! 👍'),
+                'Semua memo sudah berada di folder yang tepat dan memiliki judul! 👍'),
           ),
         );
       }
     }
   }
 
-  /// Algoritma Smart Engine Lokal untuk Analisis Folder
+  /// Algoritma Smart Engine Lokal untuk Analisis Folder & Judul Pintar
   List<FolderSuggestion> _runLocalSmartOrganize(List<Memo> memos) {
     final List<FolderSuggestion> suggestions = [];
 
@@ -279,14 +287,46 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
         reason = 'Mengandung konsep pengembangan ide dan aplikasi teknologi.';
       }
 
-      if (targetFolder != memo.folder) {
+      // 2. Deteksi jika judul kosong atau 'Tanpa Judul'
+      final isUntitled = memo.title.trim().isEmpty || memo.title == 'Tanpa Judul';
+      String? generatedTitle;
+      if (isUntitled) {
+        if (combined.contains('belanja') || combined.contains('supermarket')) {
+          generatedTitle = 'Belanja Kebutuhan Pokok';
+        } else if (combined.contains('aplikasi') ||
+            combined.contains('coding') ||
+            combined.contains('flutter')) {
+          generatedTitle = 'Ide Arsitektur Flutter';
+        } else if (combined.contains('kuis') ||
+            combined.contains('praktikum') ||
+            combined.contains('ppw') ||
+            combined.contains('lab')) {
+          generatedTitle = 'Tugas Praktikum PPW';
+        } else if (combined.contains('kas') || combined.contains('pengeluaran')) {
+          generatedTitle = 'Rekapitulasi Kas';
+        } else {
+          final words = memo.content.trim().split(' ');
+          generatedTitle = words.take(3).join(' ');
+          if (generatedTitle.isEmpty) generatedTitle = 'Catatan Baru';
+        }
+      }
+
+      if (targetFolder != memo.folder || generatedTitle != null) {
+        String finalReason = reason;
+        if (generatedTitle != null) {
+          finalReason = finalReason.isEmpty
+              ? 'Judul otomatis dibuat berdasarkan isi catatan.'
+              : '$finalReason Serta dibuatkan judul baru otomatis.';
+        }
+
         suggestions.add(
           FolderSuggestion(
             memoId: memo.id,
             title: memo.title,
+            suggestedTitle: generatedTitle,
             currentFolder: memo.folder,
             suggestedFolder: targetFolder,
-            reason: reason,
+            reason: finalReason,
           ),
         );
       }
@@ -295,7 +335,7 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
     return suggestions;
   }
 
-  /// Menerapkan saran folder dari AI ke local database
+  /// Menerapkan saran folder dan judul baru dari AI ke local database
   Future<void> _applyFolderSuggestions() async {
     final memos = await MemoStorage.loadMemos();
     final folders = await MemoStorage.loadFolders();
@@ -303,7 +343,10 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
     for (final suggestion in _folderSuggestions) {
       final idx = memos.indexWhere((m) => m.id == suggestion.memoId);
       if (idx != -1) {
-        memos[idx] = memos[idx].copyWith(folder: suggestion.suggestedFolder);
+        memos[idx] = memos[idx].copyWith(
+          folder: suggestion.suggestedFolder,
+          title: suggestion.suggestedTitle ?? memos[idx].title,
+        );
       }
       if (!folders.contains(suggestion.suggestedFolder)) {
         folders.add(suggestion.suggestedFolder);
@@ -319,7 +362,7 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
       setState(() => _folderSuggestions.clear());
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Folder berhasil dirapikan oleh AI! ✨'),
+          content: Text('Folder & Judul berhasil dirapikan oleh AI! ✨'),
           backgroundColor: Color(0xFF4A80F0),
         ),
       );
@@ -726,13 +769,46 @@ Pertanyaan: "$query"
                     children: [
                       Text(
                         sug.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
+                          color: sug.suggestedTitle != null
+                              ? const Color(0xFF9E9E9E)
+                              : const Color(0xFF1F2937),
+                          decoration: sug.suggestedTitle != null
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      if (sug.suggestedTitle != null) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_awesome,
+                                  size: 13, color: Color(0xFFD97706)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Judul Dibuat: "${sug.suggestedTitle}"',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           Container(

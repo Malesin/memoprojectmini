@@ -27,14 +27,15 @@ Aplikasi catatan mobile **Memo** yang dibangun secara *fullstack* menggunakan Fl
      - 🖼️ Pilih Foto dari Galeri
      - 🎙️ Langsung Rekam Suara (*Auto-start Voice*)
 
-5. **Navigasi Bawah 3 Tab (Home, Camera, & Smart AI):**
+5. **Navigasi Bawah 4 Tab (Home, Camera, Folder, & Smart AI):**
    - **Tab Home:** Menampilkan daftar seluruh memo & pencarian real-time.
    - **Tab Camera (Quick Capture):** Langsung membuka kamera perangkat untuk mengambil foto instan dan meneruskannya ke form memo baru.
-   - **Tab Smart AI Assistant:** Asisten cerdas berbasis Google Gemini.
+   - **Tab Folder:** Pusat manajemen folder berbentuk kartu interaktif. Menampilkan jumlah catatan per folder, dan saat ditekan akan membuka daftar catatan khusus pada kategori tersebut.
+   - **Tab Smart AI Assistant:** Asisten cerdas berbasis Google Gemini untuk analisis catatan.
 
 6. **✨ Fitur Cerdas Smart AI Assistant (`google_generative_ai`):**
-   - **📁 Rapikan Folder Otomatis:** Menganalisis seluruh isi memo dan memberikan rekomendasi pemindahan folder yang paling tepat sesuai topik (misal memo tugas ke folder "Kuliah", belanja ke "Pribadi", kas ke "Keuangan"). Dilengkapi tombol *"Terapkan Semua"* untuk update instan.
-   - **✅ Ekstrak To-Do & Action Items:** Mendeteksi kalimat aksi dan tugas penting di dalam catatan lalu menyajikannya dalam checklist interaktif.
+   - **📁 Rapikan Folder & Buat Judul Otomatis:** Menganalisis seluruh isi memo dan menyarankan pemindahan folder yang paling tepat. PENTING: Jika ada memo yang berstatus *"Tanpa Judul"*, AI otomatis membuatkan judul yang cerdas dan relevan dari isi catatan! Dilengkapi tombol *"Terapkan Semua"* untuk update instan.
+   - **✅ Ekstrak To-Do & Action Items:** Mendeteksi kalimat aksi dan tugas penting di dalam catatan lalu menyajikannya dalam checklist interaktif. Tugas yang selesai dicentang otomatis hilang agar daftar tetap rapi.
    - **💬 Tanya Catatan Saya (Ask Memo):** Ajukan pertanyaan apa pun mengenai catatanmu (contoh: *"Ada kuis apa minggu depan?"*), dan AI akan menjawab secara cerdas berdasarkan isi memo di perangkatmu!
    - **🛡️ Hybrid Fallback Engine:** Mendukung Google Gemini 1.5 Flash (online via API Key) dan otomatis beralih ke Smart Heuristics Engine lokal jika offline, sehingga 100% aman dan anti-gagal saat demonstrasi.
 
@@ -50,9 +51,14 @@ Proyek ini dibatasi menjadi berkas modular yang terstruktur rapi:
 
 ```text
 lib/
-├── main.dart               # Inisialisasi aplikasi, setup tema, dan BottomNavigationBar (3 Tab)
+├── main.dart               # Inisialisasi aplikasi, setup tema, dan BottomNavigationBar (4 Tab)
 ├── memo_model.dart         # Model data Memo, SharedPreferences helper, palet warna, & dummy seed data
 ├── home_screen.dart        # Search bar, filter folder, GridView memo, pop-up dialog hapus, & FAB SpeedDial
+├── folder_screen.dart      # Layar manajemen kartu folder & detail catatan per folder
+├── memo_card.dart          # Komponen kartu memo warna pastel dengan indikator media
+├── memo_form_screen.dart   # Form input catatan, pill dropdown, thumbnail foto, & tombol rekam suara
+└── smart_ai_screen.dart    # Tab Asisten AI (Google Gemini & Smart Engine pengatur folder & To-Do)
+```
 ├── memo_card.dart          # Komponen kartu memo warna pastel dengan indikator media
 ├── memo_form_screen.dart   # Form input catatan, pill dropdown, thumbnail foto, & tombol rekam suara
 └── smart_ai_screen.dart    # Tab Asisten AI (Google Gemini & Smart Engine pengatur folder & To-Do)

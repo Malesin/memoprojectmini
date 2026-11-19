@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'folder_screen.dart';
 import 'home_screen.dart';
 import 'memo_form_screen.dart';
 import 'memo_model.dart';
@@ -50,7 +51,8 @@ class MemoApp extends StatelessWidget {
   }
 }
 
-/// Layar Pembungkus Utama dengan BottomNavigationBar (Home, Camera Quick Capture, & Smart AI)
+/// Layar Pembungkus Utama dengan BottomNavigationBar 4 Tab
+/// (Home, Camera Quick Capture, Folder, & Smart AI)
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -61,6 +63,15 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
+  final GlobalKey<FolderScreenState> _folderKey =
+      GlobalKey<FolderScreenState>();
+
+  /// Indeks tampilan halaman aktif dalam IndexedStack
+  int get _activePageIndex {
+    if (_currentIndex == 2) return 1; // FolderScreen
+    if (_currentIndex == 3) return 2; // SmartAIScreen
+    return 0; // HomeScreen
+  }
 
   /// Fitur Quick Capture: Mengambil foto instan menggunakan kamera lalu langsung membuka form memo
   Future<void> _quickCaptureCamera() async {
@@ -86,9 +97,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         );
 
-        // Jika memo disimpan, refresh tampilan home
+        // Jika memo disimpan, refresh tampilan home dan folder
         if (result == true) {
           _homeKey.currentState?.loadData();
+          _folderKey.currentState?.loadData();
         }
       }
     } catch (e) {
@@ -109,12 +121,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: IndexedStack(
-        index: _currentIndex == 2 ? 1 : 0,
+        index: _activePageIndex,
         children: [
           HomeScreen(key: _homeKey),
+          FolderScreen(
+            key: _folderKey,
+            onMemosUpdated: () {
+              _homeKey.currentState?.loadData();
+            },
+          ),
           SmartAIScreen(
             onMemosUpdated: () {
               _homeKey.currentState?.loadData();
+              _folderKey.currentState?.loadData();
             },
           ),
         ],
@@ -129,10 +148,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           elevation: 0,
+          type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: _currentIndex == 2
-              ? const Color(0xFF4A80F0)
-              : const Color(0xFF212121),
+          selectedItemColor: const Color(0xFF4A80F0),
           unselectedItemColor: const Color(0xFF9E9E9E),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -146,10 +164,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             if (index == 0) {
               setState(() => _currentIndex = 0);
             } else if (index == 1) {
-              // Tab Camera adalah Quick Capture: langsung buka kamera tanpa merusak tab aktif
+              // Tab Camera adalah Quick Capture: langsung buka kamera tanpa meninggalkan layar aktif
               _quickCaptureCamera();
             } else if (index == 2) {
+              _folderKey.currentState?.loadData();
               setState(() => _currentIndex = 2);
+            } else if (index == 3) {
+              setState(() => _currentIndex = 3);
             }
           },
           items: const [
@@ -160,6 +181,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.camera_alt_outlined),
               label: 'Camera',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.folder_outlined),
+              activeIcon: Icon(Icons.folder),
+              label: 'Folder',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.auto_awesome),
