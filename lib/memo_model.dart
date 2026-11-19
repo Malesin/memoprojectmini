@@ -212,7 +212,7 @@ class MemoStorage {
     }
   }
 
-  /// Menghasilkan 5 memo awal contoh (Dummy Seed Data) sesuai tampilan prototype
+  /// Menghasilkan memo awal contoh (Dummy Seed Data) sesuai kebutuhan demo & presentasi
   static Future<List<Memo>> _createInitialDummyMemos() async {
     final sampleImagePath = await _createSampleImageFile();
     final sampleDate = DateTime(2026, 11, 15);
@@ -221,8 +221,9 @@ class MemoStorage {
       Memo(
         id: '1',
         title: 'Tugas PPW',
-        content: 'Catatan untuk kuis minggu depan dan persiapan modul praktikum.',
-        folder: 'Kuliah',
+        content:
+            'Submit laporan lab dan persiapan modul praktikum kuis PPW hari Jumat.',
+        folder: 'Pribadi', // Sengaja diatur 'Pribadi' agar fitur AI Organize memindahkannya ke 'Kuliah'
         imagePath: sampleImagePath,
         hasVoice: false,
         colorIndex: 0, // Lavender
@@ -230,9 +231,10 @@ class MemoStorage {
       ),
       Memo(
         id: '2',
-        title: 'Belanja',
-        content: 'Catatan untuk kuis minggu depan dan daftar kebutuhan pokok.',
-        folder: 'Pribadi',
+        title: 'Belanja Bulanan',
+        content:
+            'Beli susu, telur, sayur segar, dan kebutuhan pokok di supermarket.',
+        folder: 'Kuliah', // Sengaja diatur 'Kuliah' agar fitur AI Organize memindahkannya ke 'Pribadi'
         imagePath: sampleImagePath,
         hasVoice: false,
         colorIndex: 1, // Peach
@@ -240,8 +242,20 @@ class MemoStorage {
       ),
       Memo(
         id: '3',
-        title: 'Ide Aplikasi',
-        content: 'Catatan untuk kuis minggu depan serta ide fitur voice memo Flutter.',
+        title: 'Rekapitulasi Kas',
+        content:
+            'Catat pengeluaran uang kas bendahara sebelum jam 5 sore dan simpan bukti kuitansi.',
+        folder: 'Kuliah', // Sengaja diatur 'Kuliah' agar fitur AI Organize memindahkannya ke 'Keuangan'
+        imagePath: null,
+        hasVoice: true,
+        colorIndex: 3, // Mint Green
+        createdAt: sampleDate,
+      ),
+      Memo(
+        id: '4',
+        title: 'Ide Aplikasi Flutter',
+        content:
+            'Selesaikan coding arsitektur AI mobile memo, speech-to-text, dan database offline.',
         folder: 'Pribadi',
         imagePath: sampleImagePath,
         hasVoice: true,
@@ -249,19 +263,10 @@ class MemoStorage {
         createdAt: sampleDate,
       ),
       Memo(
-        id: '4',
-        title: 'Kontan',
-        content: 'Catatan untuk kuis minggu depan dan rekapitulasi pengeluaran kas.',
-        folder: 'Kuliah',
-        imagePath: null,
-        hasVoice: true,
-        colorIndex: 3, // Mint Green
-        createdAt: sampleDate,
-      ),
-      Memo(
         id: '5',
-        title: 'Keragiar',
-        content: 'Catatan untuk kuis minggu depan dan ringkasan materi kuliah.',
+        title: 'Jadwal Kuis Pemrograman',
+        content:
+            'Pelajari materi widget testing dan state management untuk kuis minggu depan.',
         folder: 'Kuliah',
         imagePath: sampleImagePath,
         hasVoice: true,
@@ -269,5 +274,12 @@ class MemoStorage {
         createdAt: sampleDate,
       ),
     ];
+  }
+
+  /// Reset data memo dan folder ke template demo agar fitur AI (organize folder & To-Do) langsung terlihat jelas efeknya
+  static Future<void> resetToDemoSeedData() async {
+    final demoMemos = await _createInitialDummyMemos();
+    await saveMemos(demoMemos);
+    await saveFolders(['Kuliah', 'Pribadi', 'Keuangan', 'Ide & Proyek']);
   }
 }

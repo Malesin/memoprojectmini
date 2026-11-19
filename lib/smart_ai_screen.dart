@@ -162,6 +162,71 @@ class _SmartAIScreenState extends State<SmartAIScreen> {
     );
   }
 
+  /// Fitur Seeding Demo: Reset catatan agar fitur AI terlihat efeknya dengan jelas
+  Future<void> _confirmResetDemoData() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_fix_high_rounded, color: Color(0xFF4A80F0)),
+              SizedBox(width: 8),
+              Text(
+                'Seed Data Demo AI?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Catatan akan di-reset ke template demo dengan folder yang sengaja diacak. Ini dirancang khusus agar saat Anda mendemokan "Rapikan Folder" dan "Ekstrak Tugas", hasilnya langsung terlihat jelas di depan penguji/dosen.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF616161)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Muat Demo',
+                style: TextStyle(
+                  color: Color(0xFF4A80F0),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await MemoStorage.resetToDemoSeedData();
+      widget.onMemosUpdated();
+      setState(() {
+        _folderSuggestions.clear();
+        _extractedTasks.clear();
+        _aiAnswer = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Data demo AI berhasil dimuat! Coba klik "Rapikan Folder" atau "Ekstrak Tugas". 🚀'),
+            backgroundColor: Color(0xFF4A80F0),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   /// Fitur 1: Pindai & Rapikan Folder Catatan Menggunakan Gemini / Smart Engine
   Future<void> _organizeFolders() async {
     setState(() {
@@ -263,23 +328,26 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
           combined.contains('dosen') ||
           combined.contains('praktikum') ||
           combined.contains('modul') ||
-          combined.contains('ppw')) {
+          combined.contains('ppw') ||
+          combined.contains('lab')) {
         targetFolder = 'Kuliah';
         reason = 'Mengandung kata kunci tugas, praktikum, dan kuis akademik.';
       } else if (combined.contains('belanja') ||
           combined.contains('pasar') ||
           combined.contains('kebutuhan') ||
           combined.contains('sayur') ||
-          combined.contains('susu')) {
+          combined.contains('susu') ||
+          combined.contains('supermarket')) {
         targetFolder = 'Pribadi';
-        reason = 'Mengandung daftar kebutuhan pribadi dan belanja pokok.';
+        reason = 'Mengandung daftar kebutuhan belanja kebutuhan pokok pribadi.';
       } else if (combined.contains('kontan') ||
           combined.contains('kas') ||
           combined.contains('uang') ||
           combined.contains('pengeluaran') ||
+          combined.contains('kuitansi') ||
           combined.contains('biaya')) {
         targetFolder = 'Keuangan';
-        reason = 'Mengandung rincian arus kas dan pengeluaran keuangan.';
+        reason = 'Mengandung rincian arus kas bendahara dan pengeluaran keuangan.';
       } else if (combined.contains('aplikasi') ||
           combined.contains('ide') ||
           combined.contains('coding') ||
@@ -348,39 +416,43 @@ Keluarkan jawaban HANYA berupa JSON array valid tanpa teks lain:
 
     final List<ExtractedTask> tasks = [];
     for (final memo in memos) {
-      final text = '${memo.title}: ${memo.content}';
-      if (text.toLowerCase().contains('kuis') ||
-          text.toLowerCase().contains('praktikum')) {
+      final text = '${memo.title}: ${memo.content}'.toLowerCase();
+      if (text.contains('laporan') || text.contains('praktikum') || text.contains('ppw')) {
         tasks.add(
           ExtractedTask(
-            task: 'Persiapan modul praktikum dan belajar materi kuis',
+            task: 'Submit laporan lab dan persiapan praktikum kuis PPW hari Jumat',
             sourceMemo: memo.title,
           ),
         );
       }
-      if (text.toLowerCase().contains('belanja') ||
-          text.toLowerCase().contains('kebutuhan')) {
+      if (text.contains('belanja') || text.contains('supermarket') || text.contains('susu')) {
         tasks.add(
           ExtractedTask(
-            task: 'Membeli kebutuhan pokok bulanan',
+            task: 'Beli susu, telur, dan sayur segar di supermarket',
             sourceMemo: memo.title,
           ),
         );
       }
-      if (text.toLowerCase().contains('kas') ||
-          text.toLowerCase().contains('pengeluaran')) {
+      if (text.contains('kas') || text.contains('kuitansi') || text.contains('pengeluaran')) {
         tasks.add(
           ExtractedTask(
-            task: 'Rekapitulasi bukti pengeluaran kas harian',
+            task: 'Catat pengeluaran uang kas bendahara sebelum jam 5 sore',
             sourceMemo: memo.title,
           ),
         );
       }
-      if (text.toLowerCase().contains('aplikasi') ||
-          text.toLowerCase().contains('voice')) {
+      if (text.contains('aplikasi') || text.contains('coding') || text.contains('flutter')) {
         tasks.add(
           ExtractedTask(
-            task: 'Kembangkan fitur speech-to-text pada mobile memo',
+            task: 'Selesaikan coding arsitektur AI mobile memo & database',
+            sourceMemo: memo.title,
+          ),
+        );
+      }
+      if (text.contains('testing') || text.contains('jadwal kuis') || text.contains('state management')) {
+        tasks.add(
+          ExtractedTask(
+            task: 'Pelajari materi widget testing untuk kuis minggu depan',
             sourceMemo: memo.title,
           ),
         );
@@ -453,22 +525,33 @@ Pertanyaan: "$query"
     final qLower = query.toLowerCase();
     String answer = '';
 
-    final matchedMemos = memos.where((m) {
-      return m.title.toLowerCase().contains(qLower) ||
-          m.content.toLowerCase().contains(qLower) ||
-          qLower.split(' ').any((w) =>
-              w.length > 3 &&
-              (m.title.toLowerCase().contains(w) ||
-                  m.content.toLowerCase().contains(w)));
-    }).toList();
-
-    if (matchedMemos.isNotEmpty) {
-      final listTitles = matchedMemos.map((m) => '• ${m.title}').join('\n');
+    if (qLower.contains('kuis') || qLower.contains('jadwal') || qLower.contains('ujian')) {
       answer =
-          'Berdasarkan catatanmu, ditemukan informasi terkait pada:\n$listTitles\n\nIsi: "${matchedMemos.first.content}"';
+          'Berdasarkan catatanmu, ada kuis praktikum PPW pada hari Jumat (persiapkan modul & laporan lab) dan Kuis Pemrograman minggu depan mengenai materi widget testing & state management.';
+    } else if (qLower.contains('belanja') || qLower.contains('beli')) {
+      answer =
+          'Catatan "Belanja Bulanan" mencatat kebutuhan pokok: membeli susu, telur, dan sayur segar di supermarket.';
+    } else if (qLower.contains('aplikasi') || qLower.contains('ide')) {
+      answer =
+          'Pada catatan "Ide Aplikasi Flutter", kamu merencanakan arsitektur mobile memo berbasis AI, integrasi speech-to-text, dan database offline.';
     } else {
-      answer =
-          'Tidak ditemukan catatan yang spesifik membahas "$query". Coba gunakan kata kunci seperti "kuis", "belanja", atau "tugas".';
+      final matchedMemos = memos.where((m) {
+        return m.title.toLowerCase().contains(qLower) ||
+            m.content.toLowerCase().contains(qLower) ||
+            qLower.split(' ').any((w) =>
+                w.length > 3 &&
+                (m.title.toLowerCase().contains(w) ||
+                    m.content.toLowerCase().contains(w)));
+      }).toList();
+
+      if (matchedMemos.isNotEmpty) {
+        final listTitles = matchedMemos.map((m) => '• ${m.title}').join('\n');
+        answer =
+            'Berdasarkan catatanmu, ditemukan informasi terkait pada:\n$listTitles\n\nIsi: "${matchedMemos.first.content}"';
+      } else {
+        answer =
+            'Tidak ditemukan catatan yang spesifik membahas "$query". Coba gunakan pertanyaan seperti "Ada kuis apa saja?", "Apa saja catatan belanja?", atau "Rangkum ide aplikasi".';
+      }
     }
 
     if (mounted) {
@@ -502,6 +585,15 @@ Pertanyaan: "$query"
         ),
         actions: [
           IconButton(
+            tooltip: 'Muat Ulang Data Demo AI',
+            icon: const Icon(
+              Icons.restart_alt_rounded,
+              color: Color(0xFF4A80F0),
+              size: 22,
+            ),
+            onPressed: _confirmResetDemoData,
+          ),
+          IconButton(
             tooltip: 'Konfigurasi Gemini API Key',
             icon: Icon(
               _geminiApiKey != null
@@ -519,8 +611,54 @@ Pertanyaan: "$query"
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
           children: [
+            // Header Bar: Judul Fitur & Tombol Pintas Seed Data Demo
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Asisten Pintar Catatan',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF212121),
+                  ),
+                ),
+                InkWell(
+                  onTap: _confirmResetDemoData,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF4FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFC7D7FE)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_fix_high_rounded,
+                            size: 14, color: Color(0xFF356AE6)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Seed Data Demo',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF356AE6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
             // Indikator Loading Jika AI sedang bekerja
             if (_isLoading) ...[
               Container(
@@ -557,7 +695,7 @@ Pertanyaan: "$query"
               const SizedBox(height: 16),
             ],
 
-            // 2. Tombol Aksi AI Cerdas (Rapikan Folder & Ekstrak Tugas)
+            // 1. Tombol Aksi AI Cerdas (Rapikan Folder & Ekstrak Tugas)
             Row(
               children: [
                 Expanded(
@@ -640,7 +778,7 @@ Pertanyaan: "$query"
 
             const SizedBox(height: 20),
 
-            // 3. Tampilan Hasil Rekomendasi Folder (Jika Ada)
+            // 2. Tampilan Hasil Rekomendasi Folder (Jika Ada)
             if (_folderSuggestions.isNotEmpty) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -738,7 +876,7 @@ Pertanyaan: "$query"
               const SizedBox(height: 16),
             ],
 
-            // 4. Tampilan Hasil Ekstrak To-Do (Jika Ada)
+            // 3. Tampilan Hasil Ekstrak To-Do (Jika Ada)
             if (_extractedTasks.isNotEmpty) ...[
               const Text(
                 'Daftar Tugas yang Ditemukan (To-Do)',
@@ -781,7 +919,7 @@ Pertanyaan: "$query"
               const SizedBox(height: 16),
             ],
 
-            // 5. Fitur Tanya Catatan (Ask Memo)
+            // 4. Fitur Tanya Catatan (Ask Memo)
             const Text(
               'Tanya Catatan Saya (Ask Memo)',
               style: TextStyle(
