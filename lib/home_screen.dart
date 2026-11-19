@@ -121,6 +121,97 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Menampilkan dialog konfirmasi hapus folder/kategori
+  void _showDeleteFolderDialog(String folder) {
+    if (_folders.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Minimal harus ada 1 kategori tersisa.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Hapus Kategori "$folder"?',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF212121),
+            ),
+          ),
+          content: Text(
+            'Catatan yang berada di dalam kategori "$folder" tidak akan terhapus, melainkan otomatis dipindahkan ke kategori "${_folders.firstWhere((f) => f != folder)}".',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF616161)),
+          ),
+          actionsPadding: const EdgeInsets.only(right: 16, bottom: 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  color: Color(0xFF616161),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await _deleteFolder(folder);
+              },
+              child: const Text(
+                'Hapus',
+                style: TextStyle(
+                  color: Color(0xFFE53935),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Menghapus folder dan memindahkan memo di dalamnya ke folder fallback
+  Future<void> _deleteFolder(String folder) async {
+    setState(() {
+      _folders.remove(folder);
+      if (_selectedFolder == folder) {
+        _selectedFolder = 'Semua';
+      }
+      final fallback = _folders.isNotEmpty ? _folders.first : 'Kuliah';
+      for (int i = 0; i < _memos.length; i++) {
+        if (_memos[i].folder == folder) {
+          _memos[i] = _memos[i].copyWith(folder: fallback);
+        }
+      }
+    });
+
+    await MemoStorage.saveFolders(_folders);
+    await MemoStorage.saveMemos(_memos);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Kategori "$folder" berhasil dihapus.'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   /// Menampilkan dialog tambah folder baru
   void _showAddFolderDialog() {
     final folderController = TextEditingController();
@@ -322,34 +413,37 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // Chip folder dinamis dari database lokal
+                  // Chip folder dinamis dari database lokal (tahan untuk menghapus)
                   ..._folders.map(
                     (folder) => Padding(
                       padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(folder),
-                        selected: _selectedFolder == folder,
-                        showCheckmark: false,
-                        selectedColor: const Color(0xFF4A80F0),
-                        backgroundColor: const Color(0xFFF0F2F5),
-                        labelStyle: TextStyle(
-                          color: _selectedFolder == folder
-                              ? Colors.white
-                              : const Color(0xFF616161),
-                          fontWeight: _selectedFolder == folder
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                          fontSize: 13,
+                      child: GestureDetector(
+                        onLongPress: () => _showDeleteFolderDialog(folder),
+                        child: ChoiceChip(
+                          label: Text(folder),
+                          selected: _selectedFolder == folder,
+                          showCheckmark: false,
+                          selectedColor: const Color(0xFF4A80F0),
+                          backgroundColor: const Color(0xFFF0F2F5),
+                          labelStyle: TextStyle(
+                            color: _selectedFolder == folder
+                                ? Colors.white
+                                : const Color(0xFF616161),
+                            fontWeight: _selectedFolder == folder
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            side: BorderSide.none,
+                          ),
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              setState(() => _selectedFolder = folder);
+                            }
+                          },
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          side: BorderSide.none,
-                        ),
-                        onSelected: (bool selected) {
-                          if (selected) {
-                            setState(() => _selectedFolder = folder);
-                          }
-                        },
                       ),
                     ),
                   ),

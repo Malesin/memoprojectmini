@@ -85,83 +85,6 @@ class _SmartAIScreenState extends State<SmartAIScreen> {
     }
   }
 
-  /// Dialog untuk memasukkan / melihat Gemini API Key
-  void _showApiKeyDialog() {
-    final keyController = TextEditingController(text: _geminiApiKey ?? '');
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.vpn_key_outlined, color: Color(0xFF4A80F0)),
-              SizedBox(width: 8),
-              Text(
-                'Gemini API Key',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Masukkan Google Gemini API Key Anda. Jika dikosongkan, aplikasi otomatis menggunakan Smart Engine lokal (mode offline aman).',
-                style: TextStyle(fontSize: 13, color: Color(0xFF616161)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: keyController,
-                decoration: const InputDecoration(
-                  hintText: 'AIzaSy...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () async {
-                final key = keyController.text.trim();
-                await MemoStorage.saveGeminiApiKey(key);
-                setState(() => _geminiApiKey = key.isEmpty ? null : key);
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(key.isEmpty
-                          ? 'Menggunakan mode Smart Engine Lokal'
-                          : 'Gemini API Key berhasil disimpan!'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-              child: const Text(
-                'Simpan',
-                style: TextStyle(
-                  color: Color(0xFF4A80F0),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   /// Fitur Seeding Demo: Reset catatan agar fitur AI terlihat efeknya dengan jelas
   Future<void> _confirmResetDemoData() async {
     final confirm = await showDialog<bool>(
@@ -593,19 +516,6 @@ Pertanyaan: "$query"
             ),
             onPressed: _confirmResetDemoData,
           ),
-          IconButton(
-            tooltip: 'Konfigurasi Gemini API Key',
-            icon: Icon(
-              _geminiApiKey != null
-                  ? Icons.vpn_key
-                  : Icons.vpn_key_outlined,
-              color: _geminiApiKey != null
-                  ? const Color(0xFF4A80F0)
-                  : const Color(0xFF9E9E9E),
-              size: 20,
-            ),
-            onPressed: _showApiKeyDialog,
-          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -878,42 +788,102 @@ Pertanyaan: "$query"
 
             // 3. Tampilan Hasil Ekstrak To-Do (Jika Ada)
             if (_extractedTasks.isNotEmpty) ...[
-              const Text(
-                'Daftar Tugas yang Ditemukan (To-Do)',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF212121),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ..._extractedTasks.map((item) {
-                return CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  value: item.isCompleted,
-                  title: Text(
-                    item.task,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Daftar Tugas (To-Do List)',
                     style: TextStyle(
-                      fontSize: 13,
-                      decoration: item.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                      color: item.isCompleted
-                          ? Colors.grey
-                          : const Color(0xFF212121),
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF212121),
                     ),
                   ),
-                  subtitle: Text(
-                    'Sumber: "${item.sourceMemo}"',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  if (_extractedTasks.any((t) => t.isCompleted))
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _extractedTasks.removeWhere((t) => t.isCompleted);
+                        });
+                      },
+                      child: const Text(
+                        'Bersihkan Selesai',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF4A80F0),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ..._extractedTasks.map((item) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  decoration: BoxDecoration(
+                    color: item.isCompleted
+                        ? const Color(0xFFF3F4F6)
+                        : const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
                   ),
-                  activeColor: const Color(0xFF4A80F0),
-                  onChanged: (val) {
-                    setState(() {
-                      item.isCompleted = val ?? false;
-                    });
-                  },
+                  child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    dense: true,
+                    leading: Checkbox(
+                      value: item.isCompleted,
+                      activeColor: const Color(0xFF4A80F0),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4)),
+                      onChanged: (val) {
+                        setState(() {
+                          item.isCompleted = val ?? false;
+                        });
+                        // Jika selesai di-checklist, otomatis hilangkan setelah 600ms agar daftar tidak menumpuk
+                        if (val == true) {
+                          Future.delayed(const Duration(milliseconds: 600), () {
+                            if (mounted &&
+                                item.isCompleted &&
+                                _extractedTasks.contains(item)) {
+                              setState(() {
+                                _extractedTasks.remove(item);
+                              });
+                            }
+                          });
+                        }
+                      },
+                    ),
+                    title: Text(
+                      item.task,
+                      style: TextStyle(
+                        fontSize: 13,
+                        decoration:
+                            item.isCompleted ? TextDecoration.lineThrough : null,
+                        color: item.isCompleted
+                            ? Colors.grey
+                            : const Color(0xFF212121),
+                        fontWeight: item.isCompleted
+                            ? FontWeight.normal
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Sumber: "${item.sourceMemo}"',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.close,
+                          size: 16, color: Color(0xFF9E9E9E)),
+                      tooltip: 'Hapus Tugas',
+                      onPressed: () {
+                        setState(() {
+                          _extractedTasks.remove(item);
+                        });
+                      },
+                    ),
+                  ),
                 );
               }),
               const SizedBox(height: 16),
