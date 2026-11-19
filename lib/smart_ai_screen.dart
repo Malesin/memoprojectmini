@@ -519,60 +519,8 @@ Pertanyaan: "$query"
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           children: [
-            // 1. Banner Info Status AI
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFE8F0FE), Color(0xFFF3E8FF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.psychology_outlined,
-                    size: 32,
-                    color: Color(0xFF4A80F0),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _geminiApiKey != null
-                              ? 'Google Gemini 1.5 Flash Aktif'
-                              : 'Smart AI Engine (Mode Offline Aktif)',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF212121),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _geminiApiKey != null
-                              ? 'Terhubung dengan model Generative AI Google.'
-                              : 'Bekerja secara offline lokal tanpa butuh internet.',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF616161),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
             // Indikator Loading Jika AI sedang bekerja
             if (_isLoading) ...[
               Container(
