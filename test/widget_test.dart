@@ -78,11 +78,21 @@ void main() {
     expect(find.text('Kuliah'), findsWidgets);
     expect(find.text('Pribadi'), findsWidgets);
 
-    // Verifikasi Bottom Navigation Bar memiliki item Home dan Camera
+    // Verifikasi Bottom Navigation Bar memiliki item Home, Camera, dan Smart AI
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Camera'), findsOneWidget);
+    expect(find.text('Smart AI'), findsOneWidget);
 
     // Verifikasi MemoCard berhasil dimuat
     expect(find.byType(MemoCard), findsWidgets);
+
+    // Tap tab Smart AI
+    await tester.tap(find.text('Smart AI'));
+    await tester.pump();
+
+    // Verifikasi komponen Smart AI Assistant muncul
+    expect(find.text('Memo AI Assistant'), findsOneWidget);
+    expect(find.text('Rapikan Folder'), findsOneWidget);
+    expect(find.text('Ekstrak Tugas'), findsOneWidget);
   });
 }

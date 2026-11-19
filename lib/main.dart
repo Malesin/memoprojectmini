@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'home_screen.dart';
 import 'memo_form_screen.dart';
 import 'memo_model.dart';
+import 'smart_ai_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +50,7 @@ class MemoApp extends StatelessWidget {
   }
 }
 
-/// Layar Pembungkus Utama dengan BottomNavigationBar (Home & Camera Quick Capture)
+/// Layar Pembungkus Utama dengan BottomNavigationBar (Home, Camera Quick Capture, & Smart AI)
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -107,7 +108,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: HomeScreen(key: _homeKey),
+      body: IndexedStack(
+        index: _currentIndex == 2 ? 1 : 0,
+        children: [
+          HomeScreen(key: _homeKey),
+          SmartAIScreen(
+            onMemosUpdated: () {
+              _homeKey.currentState?.loadData();
+            },
+          ),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -119,7 +130,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           currentIndex: _currentIndex,
           elevation: 0,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF212121),
+          selectedItemColor: _currentIndex == 2
+              ? const Color(0xFF4A80F0)
+              : const Color(0xFF212121),
           unselectedItemColor: const Color(0xFF9E9E9E),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -133,8 +146,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             if (index == 0) {
               setState(() => _currentIndex = 0);
             } else if (index == 1) {
-              // Tab Camera adalah Quick Capture: langsung buka kamera tanpa meninggalkan layar Home
+              // Tab Camera adalah Quick Capture: langsung buka kamera tanpa merusak tab aktif
               _quickCaptureCamera();
+            } else if (index == 2) {
+              setState(() => _currentIndex = 2);
             }
           },
           items: const [
@@ -145,6 +160,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.camera_alt_outlined),
               label: 'Camera',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.auto_awesome),
+              label: 'Smart AI',
             ),
           ],
         ),

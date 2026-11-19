@@ -1,6 +1,6 @@
-# Memo — Mobile App (Flutter Fullstack Simple & Clean)
+# Memo — Mobile App (Flutter Fullstack + Google Gemini AI)
 
-Aplikasi catatan mobile **Memo** yang dibangun secara *fullstack* menggunakan Flutter (Dart) dengan desain modern, minimalis, dan palet warna pastel yang lembut. Aplikasi ini dirancang ramah pemula dengan memprioritaskan kesederhanaan (*Keep It Simple*), performa ringan, dan penyimpanan lokal yang aman.
+Aplikasi catatan mobile **Memo** yang dibangun secara *fullstack* menggunakan Flutter (Dart) dengan desain modern, minimalis, dan palet warna pastel yang lembut. Aplikasi ini mengintegrasikan **Google Gemini 1.5 Flash AI Assistant** dengan arsitektur *hybrid* (online API + *smart local engine fallback*) untuk kenyamanan dan kestabilan presentasi.
 
 ---
 
@@ -27,11 +27,18 @@ Aplikasi catatan mobile **Memo** yang dibangun secara *fullstack* menggunakan Fl
      - 🖼️ Pilih Foto dari Galeri
      - 🎙️ Langsung Rekam Suara (*Auto-start Voice*)
 
-5. **Navigasi Bawah & Quick Capture:**
-   - **Tab Home:** Menampilkan daftar seluruh memo.
+5. **Navigasi Bawah 3 Tab (Home, Camera, & Smart AI):**
+   - **Tab Home:** Menampilkan daftar seluruh memo & pencarian real-time.
    - **Tab Camera (Quick Capture):** Langsung membuka kamera perangkat untuk mengambil foto instan dan meneruskannya ke form memo baru.
+   - **Tab Smart AI Assistant:** Asisten cerdas berbasis Google Gemini.
 
-6. **Local Database & Offline First:**
+6. **✨ Fitur Cerdas Smart AI Assistant (`google_generative_ai`):**
+   - **📁 Rapikan Folder Otomatis:** Menganalisis seluruh isi memo dan memberikan rekomendasi pemindahan folder yang paling tepat sesuai topik (misal memo tugas ke folder "Kuliah", belanja ke "Pribadi", kas ke "Keuangan"). Dilengkapi tombol *"Terapkan Semua"* untuk update instan.
+   - **✅ Ekstrak To-Do & Action Items:** Mendeteksi kalimat aksi dan tugas penting di dalam catatan lalu menyajikannya dalam checklist interaktif.
+   - **💬 Tanya Catatan Saya (Ask Memo):** Ajukan pertanyaan apa pun mengenai catatanmu (contoh: *"Ada kuis apa minggu depan?"*), dan AI akan menjawab secara cerdas berdasarkan isi memo di perangkatmu!
+   - **🛡️ Hybrid Fallback Engine:** Mendukung Google Gemini 1.5 Flash (online via API Key) dan otomatis beralih ke Smart Heuristics Engine lokal jika offline, sehingga 100% aman dan anti-gagal saat demonstrasi.
+
+7. **Local Database & Offline First:**
    - Data memo dan kategori tersimpan secara persisten di `SharedPreferences`.
    - File foto secara otomatis disalin dari direktori sementara ke penyimpanan dokumen aplikasi permanen (`getApplicationDocumentsDirectory()`) agar foto tidak hilang saat cache dibersihkan oleh OS.
 
@@ -39,15 +46,16 @@ Aplikasi catatan mobile **Memo** yang dibangun secara *fullstack* menggunakan Fl
 
 ## 📂 Struktur Proyek (`lib/`)
 
-Proyek ini dibatasi menjadi 5 file inti yang terstruktur rapi:
+Proyek ini dibatasi menjadi berkas modular yang terstruktur rapi:
 
 ```text
 lib/
-├── main.dart               # Inisialisasi aplikasi, setup tema, dan BottomNavigationBar
+├── main.dart               # Inisialisasi aplikasi, setup tema, dan BottomNavigationBar (3 Tab)
 ├── memo_model.dart         # Model data Memo, SharedPreferences helper, palet warna, & dummy seed data
 ├── home_screen.dart        # Search bar, filter folder, GridView memo, pop-up dialog hapus, & FAB SpeedDial
 ├── memo_card.dart          # Komponen kartu memo warna pastel dengan indikator media
-└── memo_form_screen.dart   # Form input catatan, pill dropdown, thumbnail foto, & tombol rekam suara
+├── memo_form_screen.dart   # Form input catatan, pill dropdown, thumbnail foto, & tombol rekam suara
+└── smart_ai_screen.dart    # Tab Asisten AI (Google Gemini & Smart Engine pengatur folder & To-Do)
 ```
 
 ---
@@ -55,6 +63,7 @@ lib/
 ## 🛠️ Dependencies
 
 * `flutter`: SDK
+* `google_generative_ai: ^0.4.7` — Google Generative AI SDK resmi untuk model Gemini.
 * `shared_preferences: ^2.3.2` — Penyimpanan lokal JSON data catatan & kategori.
 * `image_picker: ^1.1.2` — Akses kamera dan galeri foto perangkat.
 * `speech_to_text: ^7.0.0` — Transkripsi suara menjadi teks secara langsung.

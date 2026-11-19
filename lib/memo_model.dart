@@ -96,6 +96,19 @@ class Memo {
 class MemoStorage {
   static const String _keyMemos = 'memos_data';
   static const String _keyFolders = 'folders_data';
+  static const String _keyGeminiApiKey = 'gemini_api_key';
+
+  /// Mengambil Gemini API Key yang tersimpan di SharedPreferences
+  static Future<String?> getGeminiApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyGeminiApiKey);
+  }
+
+  /// Menyimpan Gemini API Key ke SharedPreferences
+  static Future<void> saveGeminiApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyGeminiApiKey, key.trim());
+  }
 
   /// Memuat daftar memo dari SharedPreferences
   /// Jika belum ada data, muat data dummy awal sesuai spesifikasi prototype
